@@ -1,0 +1,7 @@
+Laptop Support Guide
+If your company laptop is running slowly, restart the laptop first.
+Close applications that are not required.
+Check whether the laptop has enough available disk space.
+Install pending operating system updates.
+If the laptop continues to run slowly after these steps, contact IT support.
+For hardware problems, provide the laptop asset number when creating a support ticket.

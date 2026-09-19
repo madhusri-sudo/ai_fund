@@ -1,0 +1,8 @@
+VPN Troubleshooting Guide
+Employees must connect to the company VPN when accessing internal services from outside 
+the office.
+If the VPN does not connect, first verify your internet connection.
+Restart the VPN client and try again.
+Make sure your company credentials are correct.
+If the VPN shows error VPN-403, restart the VPN client and reconnect.
+If the problem continues, contact IT support and provide the VPN error code.
