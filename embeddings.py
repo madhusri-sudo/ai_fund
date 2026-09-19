@@ -63,10 +63,15 @@ embed_model = HuggingFaceEmbedding(
 # --------------------------------------------------------
 
 sample_text = "I forgot my password."
+# sample_text1 = "I cannot remember my login credentials"
 
 embedding = embed_model.get_text_embedding(
     sample_text
 )
+
+# embedding1 = embed_model.get_text_embedding(
+#     sample_text1
+# )
 
 print("\n" + "=" * 60)
 print("EMBEDDING")
@@ -75,6 +80,8 @@ print("=" * 60)
 print("Text:", sample_text)
 print("Embedding dimension:", len(embedding))
 print("First 10 values:", embedding[:10])
+
+# print("First 10 values vector 2:", embedding1[:10])
 
 # --------------------------------------------------------
 # Create vector index
@@ -89,3 +96,25 @@ index = VectorStoreIndex(
 # --------------------------------------------------------
 # Create retriever
 # --------------------------------------------------------
+
+retriever = index.as_retriever(
+    similarity_top_k=2
+)
+
+query = "I forgot my password"
+results = retriever.retrieve(query)
+
+print("(============)")
+print("Total result")
+print(results)
+print("(========--------------------------====)")
+
+for i, result in enumerate(results):
+    print(f"\nResult {i + 1}")
+    print("Score:", result.score)
+    print(
+    "Source:",
+    result.node.metadata.get("file_name")
+    )
+    print("Text:")
+    print(result.node.text)
