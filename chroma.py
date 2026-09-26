@@ -110,7 +110,7 @@ print("Database path:", CHROMA_DIR)
 # --------------------------------------------------------
 
 chroma_collection = chroma_client.get_or_create_collection(
-    name="company_knowledge"
+    name="company_ops_docs"
 )
 
 print(

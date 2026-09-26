@@ -183,7 +183,7 @@ for rank, index in enumerate(keyword_indexes, start=1):
 
 def reciprocal_rank_fusion(
     result_lists,
-    k=60
+    k=5
 ):
     """
     Combine multiple ranked result lists using RRF.
