@@ -68,6 +68,7 @@ def get_user_details(employee_id: str) -> str:
         f"Email: {user['email']}"
     )
 
+# a = get_user_details("emp:001") # can I get details of employee 001
 
 # ---------------------------------------------------------
 # Ticket Status
