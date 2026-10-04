@@ -27,7 +27,10 @@ def _dsn_from_url(database_url: str) -> dict[str, str | int]:
 def get_connection() -> PgConnection:
     """Open a new Postgres connection."""
     settings = get_settings()
-    conn = psycopg2.connect(**_dsn_from_url(settings.database_url))
+    conn = psycopg2.connect(
+        **_dsn_from_url(settings.database_url),
+        connect_timeout=2,
+    )
     return conn
 
 

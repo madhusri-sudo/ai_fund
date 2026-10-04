@@ -1,0 +1,12 @@
+# Extra deps for multi_agent_hf local mode (NO HF token required)
+# Install from travel_agent/:
+#   pip install -r requirements-hf.txt
+#
+# If the default torch wheel is too large / GPU-oriented, use CPU torch first:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install transformers accelerate huggingface_hub
+
+transformers>=4.44.0
+accelerate>=0.33.0
+huggingface_hub>=0.26.0
+torch>=2.2.0

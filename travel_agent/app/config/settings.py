@@ -6,6 +6,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
+# ---------------------------------------------------------------------------
+# Change the Gemini model name HERE only.
+# Used by single-agent (app/) and multi-agent (multi_agent/).
+# Examples: "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"
+# ---------------------------------------------------------------------------
+GEMINI_MODEL = "gemini-3.7-flash"
+
 
 class Settings(BaseSettings):
     """Runtime settings loaded from environment / .env."""
@@ -18,11 +25,21 @@ class Settings(BaseSettings):
 
     google_api_key: str = ""
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-3.8-flash"
+    hf_token: str = ""
+    huggingfacehub_api_token: str = ""
+
+    @property
+    def gemini_model(self) -> str:
+        """Always reads the GEMINI_MODEL constant above (not from .env)."""
+        return GEMINI_MODEL
 
     @property
     def resolved_google_api_key(self) -> str:
         return self.google_api_key or self.gemini_api_key
+
+    @property
+    def resolved_hf_token(self) -> str:
+        return self.hf_token or self.huggingfacehub_api_token
 
     langchain_tracing_v2: bool = True
     langchain_api_key: str = ""

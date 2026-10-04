@@ -1,3 +1,8 @@
 .ragenv
 .env
 chroma_db
+.env copy
+agent_reasoning_demo/.env
+travel_agent/.env
+.env copy.example
+agent_reasoning_demo/.env.example

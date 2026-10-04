@@ -20,7 +20,7 @@ A local **LangChain + Gemini** travel assistant that can:
 
 **Stack**
 
-- **LLM**: Google Gemini (`gemini-3.8-flash` by default)
+- **LLM**: Google Gemini (model set once in `app/config/settings.py` → `GEMINI_MODEL`)
 - **Agent framework**: LangChain (`create_agent` + tools)
 - **Database**: PostgreSQL (your existing server on `localhost:5433`)
 - **DB access**: plain `psycopg2` + SQL (no SQLAlchemy / ORM)
@@ -131,7 +131,7 @@ travel_agent/
 |------|---------|
 | `requirements.txt` | Installs LangChain, Gemini SDK, `psycopg2-binary`, FastAPI, pytest, etc. |
 | `.env.example` | Safe template. Copy to `.env` and fill keys. |
-| `.env` | Real `GEMINI_API_KEY`, `DATABASE_URL`, `GEMINI_MODEL`. **Do not commit.** |
+| `.env` | Real `GEMINI_API_KEY`, `DATABASE_URL`. **Do not commit.** Model name is in `app/config/settings.py`. |
 | `docker-compose.yml` | Optional standalone Postgres. Prefer your existing Postgres on port **5433**. |
 | `pytest.ini` | Sets `pythonpath = .` so tests can `import app`. |
 
@@ -472,7 +472,7 @@ copy .env.example .env          # Windows
 # cp .env.example .env          # macOS / Linux
 # Edit .env → set GEMINI_API_KEY (or GOOGLE_API_KEY)
 # Confirm DATABASE_URL points to localhost:5433/travel_agent
-# Confirm GEMINI_MODEL=gemini-3.8-flash
+# Change model in app/config/settings.py → GEMINI_MODEL
 
 # 5) Create database + tables
 python scripts/init_db.py
@@ -534,7 +534,6 @@ pytest tests/ -q
 | Variable | Purpose | Example |
 |----------|---------|---------|
 | `GEMINI_API_KEY` or `GOOGLE_API_KEY` | Gemini auth | your key |
-| `GEMINI_MODEL` | Model id | `gemini-3.8-flash` |
 | `LANGCHAIN_TRACING_V2` | LangSmith on/off | `true` / `false` |
 | `LANGCHAIN_API_KEY` | LangSmith key | optional |
 | `LANGCHAIN_PROJECT` | LangSmith project name | `travel-agent` |
@@ -566,7 +565,7 @@ pytest tests/ -q
 
 | Problem | Fix |
 |---------|-----|
-| `model ... gemini-2.0-flash is no longer available` | Set `GEMINI_MODEL=gemini-3.8-flash` in `.env` |
+| `model ... is no longer available` / high demand 503 | Change `GEMINI_MODEL` in `app/config/settings.py` |
 | Missing API key | Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` in `.env` |
 | Connection refused on 5433 | Start your Postgres / `pgvector-db` container |
 | No flights found | Run `python scripts/seed_demo_data.py` |
@@ -584,3 +583,91 @@ pytest tests/ -q
 .optional REST          →  uvicorn app.api.routes:app --reload
 .all data lives in      →  PostgreSQL database: travel_agent
 ```
+
+---
+
+## 15. Multi-Agent Orchestration (Sequential + Supervisor)
+
+After the single-agent travel assistant, this repo also includes a **practical multi-agent layer** for teaching orchestration.
+
+There are **two parallel packages**:
+
+| Folder | Provider | Model constant |
+|---|---|---|
+| `multi_agent/` | Google Gemini | `app/config/settings.py` → `GEMINI_MODEL` |
+| `multi_agent_hf/` | Hugging Face **local** (no token by default) | `multi_agent_hf/llm.py` → `HF_MODEL` |
+
+Use `multi_agent_hf/` when Gemini returns high-demand `503` errors. Install once with `pip install -r requirements-hf.txt`. See [`multi_agent_hf/README.md`](multi_agent_hf/README.md).
+
+### What was added
+
+```text
+travel_agent/multi_agent/
+├── MULTI_AGENT_TRAVEL_PRESENTATION.md  # presentation guide + examples
+├── llm.py
+├── main.py
+├── agents/
+│   ├── flight_agent.py              # specialist: flights
+│   ├── hotel_agent.py               # specialist: hotels
+│   └── itinerary_agent.py           # specialist: final plan / review
+├── workflows/
+│   ├── state.py
+│   ├── sequential_workflow.py       # Flight → Hotel → Itinerary
+│   └── supervisor_workflow.py       # Supervisor decides next worker
+└── examples/
+    ├── 01_single_agent_baseline.py
+    ├── 02_unit_test_each_agent.py
+    ├── 03_shared_state_demo.py
+    ├── 04_sequential_demo.py
+    ├── 05_supervisor_demo.py
+    ├── 06_router_vs_supervisor.py
+    ├── 07_bad_vs_good_boundaries.py
+    ├── 08_handoff_and_state.py
+    ├── 09_supervisor_routing_cases.py
+    └── 10_parallel_travel_concept.py
+```
+
+### Architecture progression
+
+```text
+Single Agent
+    → Specialized Agents (Flight / Hotel / Itinerary)
+    → Sequential Workflow (fixed order)
+    → Supervisor Workflow (dynamic order)
+```
+
+**Sequential**
+
+```text
+Flight Agent → Hotel Agent → Itinerary Agent → Final Plan
+```
+
+**Supervisor**
+
+```text
+Supervisor ↔ (Flight | Hotel | Itinerary) → FINISH
+```
+
+### Run commands
+
+From `travel_agent/`:
+
+```bash
+pip install -r requirements.txt
+
+# concept demos
+python multi_agent/examples/03_shared_state_demo.py
+python multi_agent/examples/06_router_vs_supervisor.py
+
+# test specialists independently
+python multi_agent/examples/02_unit_test_each_agent.py
+
+# orchestration
+python -m multi_agent.main sequential
+python -m multi_agent.main supervisor
+python -m multi_agent.main both --query "Plan Hyderabad to Delhi on 2026-04-15 with airport hotel and itinerary"
+```
+
+### Presentation guide
+
+Use [`multi_agent/MULTI_AGENT_TRAVEL_PRESENTATION.md`](multi_agent/MULTI_AGENT_TRAVEL_PRESENTATION.md) for the full flowing guide, demo queries, and example commands.
