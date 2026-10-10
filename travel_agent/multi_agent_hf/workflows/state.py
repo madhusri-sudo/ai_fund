@@ -23,5 +23,5 @@ class SupervisorState(TypedDict, total=False):
     hotels: str
     itinerary: str
     final_answer: str
-    next_agent: Literal["flight", "hotel", "itinerary", "FINISH"]
+    next_agent: Literal["flight", "hotel", "itinerary", "final_answer", "FINISH"]
     steps: list[str]

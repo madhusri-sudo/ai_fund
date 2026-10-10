@@ -38,7 +38,7 @@ from app.config.settings import get_settings
 HF_MODE = "local"
 HF_MODEL = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 # HF_MODEL = "HuggingFaceTB/SmolLM2-135M-Instruct"
-HF_MAX_NEW_TOKENS = 512
+HF_MAX_NEW_TOKENS = 768
 
 _local_pipe: Any = None
 

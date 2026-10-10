@@ -36,14 +36,12 @@ def main() -> None:
         print(f"Query {i}: {query}")
         result = run_supervisor(query)
         print("Steps:", result.get("steps"))
-        final = (
-            result.get("final_answer")
-            or result.get("itinerary")
-            or result.get("flights")
-            or result.get("hotels")
-        )
-        print("\nFull result:\n")
-        print(final or "(empty)")
+        print("\nInventory (flight):\n")
+        print((result.get("flights") or "(not used)")[:600])
+        print("\nInventory (hotel):\n")
+        print((result.get("hotels") or "(not used)")[:600])
+        print("\nFinal answer (LLM):\n")
+        print(result.get("final_answer") or "(empty)")
 
 
 if __name__ == "__main__":

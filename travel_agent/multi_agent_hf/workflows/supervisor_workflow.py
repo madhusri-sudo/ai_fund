@@ -1,17 +1,17 @@
 """
 Supervisor multi-agent travel workflow.
 
-For local HF models, routing is rule-based (TinyLlama is unreliable at
-returning only flight/hotel/itinerary/FINISH). Workers still use inventory.
+Routing is rule-based (reliable for local HF).
+Workers gather inventory; a dedicated final_answer node always calls the LLM.
 """
 
 from __future__ import annotations
 
 from langgraph.graph import END, START, StateGraph
 
+from multi_agent_hf.agents.final_answer import generate_final_answer
 from multi_agent_hf.agents.flight_agent import run_flight_agent
 from multi_agent_hf.agents.hotel_agent import run_hotel_agent
-from multi_agent_hf.agents.itinerary_agent import run_itinerary_agent
 from multi_agent_hf.workflows.state import SupervisorState
 
 MAX_STEPS = 8
@@ -60,6 +60,11 @@ def _decide_next(state: SupervisorState) -> str:
     flights = bool(state.get("flights"))
     hotels = bool(state.get("hotels"))
     itinerary = bool(state.get("itinerary"))
+    final_answer = bool(state.get("final_answer"))
+
+    # After workers are done, always go to LLM final answer once.
+    if final_answer:
+        return "FINISH"
 
     need_flight = _wants_flight(request)
     need_hotel = _wants_hotel(request)
@@ -82,21 +87,27 @@ def _decide_next(state: SupervisorState) -> str:
     if need_hotel and not hotels:
         return "hotel"
     if need_itinerary and not itinerary:
-        # For full plans, require flight/hotel first when those were requested
         if need_flight and not flights:
             return "flight"
         if need_hotel and not hotels:
             return "hotel"
         return "itinerary"
 
-    return "FINISH"
+    # Inventory gathered (or not needed) → LLM final answer
+    return "final_answer"
 
 
 def supervisor_node(state: SupervisorState) -> dict:
-    """Decide which worker should run next."""
+    """Decide which worker / final LLM step should run next."""
     steps = list(state.get("steps") or [])
     if len(steps) >= MAX_STEPS:
-        return {"next_agent": "FINISH", "steps": steps + ["supervisor:FINISH(max)"]}
+        # Force LLM final answer if missing, else finish
+        if not state.get("final_answer"):
+            next_agent = "final_answer"
+        else:
+            next_agent = "FINISH"
+        steps.append(f"supervisor:{next_agent}(max)")
+        return {"next_agent": next_agent, "steps": steps}
 
     next_agent = _decide_next(state)
     steps.append(f"supervisor:{next_agent}")
@@ -119,34 +130,47 @@ def hotel_node(state: SupervisorState) -> dict:
 
 
 def itinerary_node(state: SupervisorState) -> dict:
-    plan = run_itinerary_agent(
-        request=state["request"],
+    """
+    Mark itinerary stage complete.
+
+    The natural-language answer is produced by final_answer_node (LLM).
+    """
+    steps = list(state.get("steps") or []) + ["worker:itinerary"]
+    return {"itinerary": "ready", "steps": steps}
+
+
+def final_answer_node(state: SupervisorState) -> dict:
+    """Always call the LLM to write the user-facing final answer."""
+    answer = generate_final_answer(
+        request=state.get("request", ""),
         flight_findings=state.get("flights", ""),
         hotel_findings=state.get("hotels", ""),
     )
-    steps = list(state.get("steps") or []) + ["worker:itinerary"]
-    return {
-        "itinerary": plan,
-        "final_answer": plan,
-        "steps": steps,
-    }
+    steps = list(state.get("steps") or []) + ["llm:final_answer"]
+    return {"final_answer": answer, "steps": steps}
 
 
 def route_from_supervisor(state: SupervisorState) -> str:
     nxt = state.get("next_agent", "FINISH")
-    if nxt in {"flight", "hotel", "itinerary"}:
+    if nxt in {"flight", "hotel", "itinerary", "final_answer"}:
         return nxt
     return "FINISH"
 
 
 def build_supervisor_workflow():
-    """Compile supervisor ↔ workers graph with conditional routing."""
+    """
+    Compile supervisor graph:
+
+    START → supervisor ⇄ (flight|hotel|itinerary)
+                      → final_answer (LLM) → supervisor → FINISH → END
+    """
     graph = StateGraph(SupervisorState)
 
     graph.add_node("supervisor", supervisor_node)
     graph.add_node("flight", flight_node)
     graph.add_node("hotel", hotel_node)
     graph.add_node("itinerary", itinerary_node)
+    graph.add_node("final_answer", final_answer_node)
 
     graph.add_edge(START, "supervisor")
     graph.add_conditional_edges(
@@ -156,13 +180,16 @@ def build_supervisor_workflow():
             "flight": "flight",
             "hotel": "hotel",
             "itinerary": "itinerary",
+            "final_answer": "final_answer",
             "FINISH": END,
         },
     )
 
+    # Workers and LLM final answer report back to supervisor
     graph.add_edge("flight", "supervisor")
     graph.add_edge("hotel", "supervisor")
     graph.add_edge("itinerary", "supervisor")
+    graph.add_edge("final_answer", "supervisor")
 
     return graph.compile()
 
@@ -189,5 +216,5 @@ if __name__ == "__main__":
     print("=== Supervisor Workflow ===\n")
     output = run_supervisor(query)
     print("Steps:", output.get("steps"))
-    print("\n--- FINAL ---\n")
-    print(output.get("final_answer") or output.get("flights") or output.get("hotels"))
+    print("\n--- FINAL (LLM) ---\n")
+    print(output.get("final_answer", ""))

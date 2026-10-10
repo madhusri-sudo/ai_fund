@@ -40,7 +40,7 @@ def _print_sequential(request: str) -> None:
     print(result.get("flights", ""))
     print("\n[2] HOTEL FINDINGS\n")
     print(result.get("hotels", ""))
-    print("\n[3] FINAL ITINERARY\n")
+    print("\n[3] FINAL ANSWER (LLM)\n")
     print(result.get("final_answer", ""))
 
 
@@ -56,14 +56,8 @@ def _print_supervisor(request: str) -> None:
     print(result.get("flights") or "(not used)")
     print("\n[HOTELS]\n")
     print(result.get("hotels") or "(not used)")
-    print("\n[FINAL / ITINERARY]\n")
-    print(
-        result.get("final_answer")
-        or result.get("itinerary")
-        or result.get("flights")
-        or result.get("hotels")
-        or "(empty)"
-    )
+    print("\n[FINAL ANSWER (LLM)]\n")
+    print(result.get("final_answer") or "(empty)")
 
 
 def main() -> None:

@@ -25,8 +25,12 @@ def main() -> None:
         "Plan Hyderabad to Delhi on 2026-04-15 with airport hotel and 3-day itinerary."
     )
     result = run_sequential(query)
-    print("Sequential path: Flight → Hotel → Itinerary\n")
-    print("FINAL ANSWER:\n")
+    print("Sequential path: Flight -> Hotel -> Itinerary (LLM final)\n")
+    print("--- Inventory: flights ---\n")
+    print(result.get("flights", "")[:600])
+    print("\n--- Inventory: hotels ---\n")
+    print(result.get("hotels", "")[:600])
+    print("\n--- FINAL ANSWER (LLM) ---\n")
     print(result.get("final_answer", ""))
 
 

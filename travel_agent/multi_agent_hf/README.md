@@ -27,6 +27,8 @@ Flight/Hotel agents read **real inventory** (Python parsing, not LLM invention):
 1. Postgres first (if running + seeded)
 2. Fallback to `app/data/seed_data.py` if DB is down
 
+The **final user answer is always an LLM call** (`agents/final_answer.py`) that writes a natural response using those inventory findings as context.
+
 ```bash
 # optional live Postgres
 python scripts/init_db.py
